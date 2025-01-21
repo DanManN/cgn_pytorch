@@ -61,14 +61,14 @@ def cgn_infer(cgn, pcd, obj_mask=None, threshold=0.5):
 
     pcd = torch.Tensor(pcd).to(dtype=torch.float32).to(cgn.device)
     batch = torch.zeros(pcd.shape[0]).to(dtype=torch.int64).to(cgn.device)
-    idx = fps(pcd, batch, 2048/pcd.shape[0])
+    idx = fps(pcd, batch, 2048/pcd.shape[0]).to(cgn.device)
     #idx = torch.linspace(0, pcd.shape[0]-1, 2048).to(dtype=torch.int64).to(cgn.device)
     
     if obj_mask is not None:
-        obj_mask = torch.Tensor(obj_mask[downsample])
+        obj_mask = torch.Tensor(obj_mask[downsample]).to(cgn.device)
         obj_mask = obj_mask[idx]
     else:
-        obj_mask = torch.ones(idx.shape[0])
+        obj_mask = torch.ones(idx.shape[0]).to(cgn.device)
 
     points, pred_grasps, confidence, pred_widths, _, pred_collide = cgn(pcd[:, 3:], pos=pcd[:, :3], batch=batch, idx=idx)
     sig = torch.nn.Sigmoid()
