@@ -85,7 +85,7 @@ def cgn_infer(cgn, pcd, obj_mask=None, threshold=0.5):
         print('failed to find successful grasps')
         raise Exception
 
-    return pred_grasps[success_mask], confidence[success_mask], downsample
+    return pred_grasps[success_mask], confidence[success_mask], downsample, points[success_mask]
 
 def visualize(pcd, grasps, mc_vis=None):
     print('visualizing. Run meshcat-server in another terminal to see visualization.')
@@ -113,7 +113,7 @@ if __name__=='__main__':
     parser.add_argument('--config_path', type=str, default='cgn_pytorch/checkpoints', help='path to config yaml file')
     parser.add_argument('--model', type=str, default='sg_score')
     parser.add_argument('--pos_weight', default=1.0)
-    parser.add_argument('--threshold', default=0.9, type=float, help='success threshold for grasps')
+    parser.add_argument('--threshold', default=0.5, type=float, help='success threshold for grasps')
     parser.add_argument('--scene', default='cgn_pytorch/scenes/005274.npz', help='file with demo scene loaded')
     args = parser.parse_args()
 
@@ -129,8 +129,20 @@ if __name__=='__main__':
     
     ### Get pcd, pass into model
     print('inferring.')
-    pred_grasps, pred_success, downsample = cgn_infer(contactnet, pointcloud, obj_mask, threshold=args.threshold)
+    np.random.seed(0)
+    pred_grasps, pred_success, downsample, points = cgn_infer(contactnet, pointcloud, obj_mask, threshold=args.threshold)
     print('model pass.', pred_grasps.shape[0], 'grasps found.')
-    
+    print(pred_success)
+    print(pred_success.shape)
+    new_mask = np.zeros_like(obj_mask).astype(bool)
+    for point in points:
+        new_mask |= np.all(pointcloud == point, axis=-1)[:,None]
+
+    np.random.seed(0)
+    pred_grasps, pred_success, downsample, points = cgn_infer(contactnet, pointcloud, obj_mask, threshold=args.threshold)
+    print('rescoreing pass.', pred_grasps.shape[0], 'grasps found.')
+    print(pred_success)
+    print(pred_success.shape)
+
     ### Visualize
     visualize(pointcloud, pred_grasps)
