@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(cgn-ros)
+project(cgn_ros)
 
 find_package(catkin REQUIRED COMPONENTS
     std_msgs

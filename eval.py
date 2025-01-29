@@ -53,11 +53,11 @@ def grasp_to_gripper(grasp_pose, translate=0.0, theta=np.pi/2):
 
 def cgn_infer(cgn, pcd, obj_mask=None, threshold=0.5):
     cgn.eval()
-    if pcd.shape[0] > 20000:
-        downsample = np.array(random.sample(range(pcd.shape[0]-1), 20000))
-    else:
-        downsample = np.arange(20000)
-    pcd = pcd[downsample, :]
+    # if pcd.shape[0] > 20000:
+    #     downsample = np.array(random.sample(range(pcd.shape[0]-1), 20000))
+    # else:
+    #     downsample = np.arange(20000)
+    # pcd = pcd[downsample, :]
 
     pcd = torch.Tensor(pcd).to(dtype=torch.float32).to(cgn.device)
     batch = torch.zeros(pcd.shape[0]).to(dtype=torch.int64).to(cgn.device)
@@ -65,7 +65,8 @@ def cgn_infer(cgn, pcd, obj_mask=None, threshold=0.5):
     #idx = torch.linspace(0, pcd.shape[0]-1, 2048).to(dtype=torch.int64).to(cgn.device)
     
     if obj_mask is not None:
-        obj_mask = torch.Tensor(obj_mask[downsample]).to(cgn.device)
+        # obj_mask = torch.Tensor(obj_mask[downsample]).to(cgn.device)
+        obj_mask = torch.Tensor(obj_mask).to(cgn.device)
         obj_mask = obj_mask[idx]
     else:
         obj_mask = torch.ones(idx.shape[0]).to(cgn.device)
@@ -85,7 +86,8 @@ def cgn_infer(cgn, pcd, obj_mask=None, threshold=0.5):
         print('failed to find successful grasps')
         raise Exception
 
-    return pred_grasps[success_mask], confidence[success_mask], downsample, points[success_mask]
+    return pred_grasps[success_mask], confidence[success_mask], [], points[success_mask]
+    # return pred_grasps[success_mask], confidence[success_mask], downsample, points[success_mask]
 
 def visualize(pcd, grasps, mc_vis=None):
     print('visualizing. Run meshcat-server in another terminal to see visualization.')

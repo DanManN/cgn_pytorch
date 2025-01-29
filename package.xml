@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>cgn-ros</name>
+  <name>cgn_ros</name>
   <version>1.0.0</version>
   <description>Contact graspnet ROS service.</description>
   <maintainer email="d.nak@rutgers.edu">Daniel Nakhimovich</maintainer>
