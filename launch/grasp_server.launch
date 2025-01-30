@@ -1,8 +1,5 @@
 <launch>
-  <arg name="config" />
-  <node name="detect_grasps_server" pkg="gpd_ros" type="detect_grasps_server" output="screen" >
-    <param name="config_file" value="$(arg config)" />
-    <param name="rviz_topic" value="/plot_grasps" />
-  </node>
-  <node name="gpd_docker" pkg="gpd_docker" type="grasp_server.py" output="screen" />
+  <arg name="mamba_env" default="false" />
+  <node name="cgn_ros" pkg="cgn_ros" type="run_in_mamba.sh" output="screen" if="$(arg mamba_env)"/>
+  <node name="cgn_ros" pkg="cgn_ros" type="grasp_server.py" output="screen" unless="$(arg mamba_env)"/>
 </launch>

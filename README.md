@@ -1,4 +1,8 @@
-# Contact-GraspNet Pytorch
+# ROS wrapper for Contact-GraspNet Pytorch
+
+This is a ROS package creating a service to run the Contact-GraspNet Pytorch model in a micromamba environment.
+
+## Contact-GraspNet Pytorch
 Pytorch implementation of Contact-GraspNet. This repo is based heavily on 
 https://github.com/alinasarmiento/pytorch_contactnet. Original Tensorflow implementation can be found at: https://github.com/NVlabs/contact_graspnet
 

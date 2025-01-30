@@ -12,7 +12,7 @@ import rospy
 from rospkg import RosPack
 import transformations as tf
 from std_msgs.msg import Int64
-from geometry_msgs.msg import Pose, PoseStamped
+from geometry_msgs.msg import Point, Pose, PoseStamped
 
 from cgn_ros.msg import Grasps
 from cgn_ros.srv import GetGrasps, GetGraspsResponse
@@ -67,6 +67,8 @@ class GraspPlanner():
         load_path = rp.get_path(
             'cgn_ros'
         ) + '/cgn_pytorch/checkpoints/current.pth'
+        print(config_path)
+        print(load_path)
 
         ### Initialize net
         cnet, optim, config = self.initialize_net(config_path, True, load_path)
@@ -87,13 +89,15 @@ class GraspPlanner():
 
         return model, optimizer, config_dict
 
-    def cgn_infer(self, cgn, pcd, obj_mask=None, threshold=0.5):
+    def cgn_infer(self, pcd, obj_mask=None, threshold=0.5):
+        cgn = self.model
         cgn.eval()
-        # if pcd.shape[0] > 20000:
-        #     downsample = np.array(random.sample(range(pcd.shape[0] - 1), 20000))
-        # else:
-        #     downsample = np.arange(20000)
-        # pcd = pcd[downsample, :]
+
+        if pcd.shape[0] > 20000:
+            downsample = np.array(random.sample(range(pcd.shape[0] - 1), 20000))
+        else:
+            downsample = np.arange(20000)
+        pcd = pcd[downsample, :]
 
         pcd = torch.Tensor(pcd).to(dtype=torch.float32).to(cgn.device)
         batch = torch.zeros(pcd.shape[0]).to(dtype=torch.int64).to(cgn.device)
@@ -101,12 +105,13 @@ class GraspPlanner():
         #idx = torch.linspace(0, pcd.shape[0]-1, 2048).to(dtype=torch.int64).to(cgn.device)
 
         if obj_mask is not None:
-            # obj_mask = torch.Tensor(obj_mask[downsample]).to(cgn.device)
-            obj_mask = torch.Tensor(obj_mask).to(cgn.device)
+            obj_mask = torch.Tensor(obj_mask[downsample]).to(cgn.device)
+            # obj_mask = torch.Tensor(obj_mask).to(cgn.device)
             obj_mask = obj_mask[idx]
         else:
             obj_mask = torch.ones(idx.shape[0]).to(cgn.device)
 
+        # help(cgn.forward)
         result = cgn(pcd[:, 3:], pos=pcd[:, :3], batch=batch, idx=idx)
         points, pred_grasps, confidence, pred_widths, _, pred_collide = result
         sig = torch.nn.Sigmoid()
@@ -139,35 +144,37 @@ class GraspPlanner():
         target_mask,  # bool[]
         threshold,  # float32
     ):
-        result = self.cgn_infer(self.model, points, target_mask, threshold)
-        grasps, scores, points = result
+        points = np.array(points.data, dtype=np.float32).reshape(-1, 3)
+        target_mask = np.array(target_mask).reshape((-1, 1))
+        result = self.cgn_infer(points, target_mask, threshold)
+        grasps, scores, samples = result
 
         pose_list = []
         score_list = []
         sample_list = []
-        for pose, score, sample in zip(grasps, scores, points):
+        for pose, score, sample in zip(grasps, scores, samples):
 
-            #swap x and z axes
-            # pose = np.matmul(
-            #     pose,
-            #     [
-            #         [0., 0., 1., 0.],
-            #         [0, -1., 0., 0.],
-            #         [1., 0., 0., 0.],
-            #         [0., 0., 0., 1.],
-            #     ],
-            # )
+            #swap x and y axes
+            pose = np.matmul(
+                pose,
+                [
+                    [0., 1., 0., 0.],
+                    [-1, 0., 0., 0.],
+                    [0., 0., 1., 0.],
+                    [0., 0., 0., 1.],
+                ],
+            )
 
             pose_list.append(matrix_to_pose(pose))
             score_list.append(score)
-            sample_list.append(sample)
+            sample_list.append(Point(sample[0], sample[1], sample[2]))
         return pose_list, score_list, sample_list
 
     def handle_grasp_request(self, req):
         grasps, scores, samples = self.get_grasp_poses(
             req.points,
-            req.cloud,
-            req.camera_position,
+            req.target_mask,
+            req.threshold,
         )
         grasps_msg = Grasps()
         grasps_msg.poses = grasps

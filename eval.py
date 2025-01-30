@@ -136,15 +136,29 @@ if __name__=='__main__':
     print('model pass.', pred_grasps.shape[0], 'grasps found.')
     print(pred_success)
     print(pred_success.shape)
-    new_mask = np.zeros_like(obj_mask).astype(bool)
+    new_mask = np.zeros(obj_mask.shape[0], dtype=bool)
+
     for point in points:
-        new_mask |= np.all(pointcloud == point, axis=-1)[:,None]
+        point_in_cloud = np.all(pointcloud == point, axis=-1)
+        # print(np.count_nonzero(point_in_cloud))
+        if np.any(point_in_cloud):
+            new_mask |= point_in_cloud
+
+    # print(obj_mask,obj_mask.shape)
+    new_mask = new_mask[:,None]
+    # print(new_mask,new_mask.shape)o
+    new_mask2 = np.isin(pointcloud.view([('', pointcloud.dtype)] * pointcloud.shape[1]), points.view([('', points.dtype)] * points.shape[1]))
+    print(new_mask2.shape, new_mask.shape)
+    print(np.all(new_mask2 == new_mask))
+
 
     np.random.seed(0)
-    pred_grasps, pred_success, downsample, points = cgn_infer(contactnet, pointcloud, obj_mask, threshold=args.threshold)
+    pred_grasps, pred_success, downsample, points = cgn_infer(contactnet, pointcloud, new_mask, threshold=args.threshold)
     print('rescoreing pass.', pred_grasps.shape[0], 'grasps found.')
     print(pred_success)
     print(pred_success.shape)
+
+    help(contactnet.forward)
 
     ### Visualize
     visualize(pointcloud, pred_grasps)

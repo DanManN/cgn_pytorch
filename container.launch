@@ -1,0 +1,3 @@
+<launch>
+  <node name="cgn_ros_server" pkg="cgn_ros" type="run_container.py" output="screen" args="-host $(optenv ROS_MASTER localhost)" />
+</launch>
